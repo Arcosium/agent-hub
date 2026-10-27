@@ -1,0 +1,83 @@
+{
+  "codex_use_credits": false,
+  "skills": {
+    "hub": {"all": "~/projects/agent-hub/skills/hub"},
+    "arka-design": {"all": "~/.codex/skills/arka-design"},
+    "hwp": {"all": "~/.claude/skills/hwp"},
+    "playwright-cli": {"all": "~/.claude/skills/playwright-cli"},
+    "agent-reach": {"all": "~/.codex/skills/agent-reach"},
+    "humanize-korean": {
+      "claude": "~/.claude/skills/humanize-korean",
+      "codex": "~/.codex/skills/humanize-korean",
+      "hermes": "~/.codex/skills/humanize-korean",
+      "note": "Claude 판은 정밀(5인) 모드 포함, Codex 판은 한 번에 끝내는 Fast 모드라 로컬도 Codex 판을 쓴다"
+    },
+    "공모전": {
+      "claude": "~/.claude/skills/공모전",
+      "codex": "~/.codex/skills/contest",
+      "hermes": "~/.codex/skills/contest",
+      "note": "정본은 Claude 판, contest 는 같은 정본을 읽는 Codex 호환 래퍼"
+    },
+    "자소서": {
+      "claude": "~/.claude/skills/자소서",
+      "codex": "~/.codex/skills/jasoseo",
+      "hermes": "~/.codex/skills/jasoseo",
+      "note": "정본은 Codex 판 jasoseo, 자소서 는 그것을 읽는 Claude 래퍼"
+    },
+    "카카오톡": {
+      "claude": "~/projects/kakaotalk-agent/skills/카카오톡",
+      "codex": "~/projects/kakaotalk-agent/skills/카카오톡",
+      "note": "메시지 전송 스킬이라 로컬 모델에는 열지 않는다"
+    },
+    "ponytail": {
+      "hermes": "~/.claude/plugins/marketplaces/ponytail/skills/ponytail",
+      "note": "Claude·Codex 는 플러그인으로 받는다"
+    },
+    "humanize": {"claude": "~/.claude/skills/humanize", "note": "im-not-ai 플러그인 마켓 스킬"},
+    "humanize-redo": {"claude": "~/.claude/skills/humanize-redo", "note": "im-not-ai 플러그인 마켓 스킬"},
+    "docx": {"claude": "~/.claude/skills/docx", "note": "Anthropic 독점 라이선스, Claude 전용"},
+    "pdf": {"claude": "~/.claude/skills/pdf", "note": "Anthropic 독점 라이선스, Claude 전용"},
+    "pptx": {"claude": "~/.claude/skills/pptx", "note": "Anthropic 독점 라이선스, Claude 전용"},
+    "xlsx": {"claude": "~/.claude/skills/xlsx", "note": "Anthropic 독점 라이선스, Claude 전용"},
+    "algorithmic-art": {"claude": "~/.claude/skills/algorithmic-art", "note": "Anthropic 예제 스킬"},
+    "brand-guidelines": {"claude": "~/.claude/skills/brand-guidelines", "note": "Anthropic 예제 스킬"},
+    "claude-api": {"claude": "~/.claude/skills/claude-api", "note": "Claude API 전용"},
+    "doc-coauthoring": {"claude": "~/.claude/skills/doc-coauthoring", "note": "Anthropic 예제 스킬"},
+    "internal-comms": {"claude": "~/.claude/skills/internal-comms", "note": "Anthropic 예제 스킬"},
+    "mcp-builder": {"claude": "~/.claude/skills/mcp-builder", "note": "Anthropic 예제 스킬"},
+    "skill-creator": {"claude": "~/.claude/skills/skill-creator", "note": "Codex 는 자체 skill-creator 가 있다"},
+    "slack-gif-creator": {"claude": "~/.claude/skills/slack-gif-creator", "note": "Anthropic 예제 스킬"},
+    "web-artifacts-builder": {"claude": "~/.claude/skills/web-artifacts-builder", "note": "Anthropic 예제 스킬"},
+    "webapp-testing": {"claude": "~/.claude/skills/webapp-testing", "note": "Anthropic 예제 스킬"}
+  },
+  "mcp": {
+    "hwp-cli": {
+      "tools": ["claude", "codex", "hermes"],
+      "command": "~/.local/bin/hwp",
+      "args": ["mcp", "--font-dir", "/usr/share/fonts/opentype/noto", "--root", "~/projects", "--root", "~/vault/공모전"]
+    },
+    "higgsfield": {"tools": ["claude", "codex"], "url": "https://mcp.higgsfield.ai/mcp", "note": "유료 생성이라 로컬 모델에는 열지 않는다"},
+    "danawa": {"tools": ["claude", "codex"], "url": "https://mcp.ai.cowave.kr/mcp"},
+    "figma": {"tools": ["codex"], "url": "https://mcp.figma.com/mcp", "note": "Claude 는 design 플러그인의 Figma MCP 를 쓴다"},
+    "kakao-desktop": {
+      "tools": ["claude", "codex"],
+      "command": "/usr/bin/python3",
+      "args": ["~/projects/kakaotalk-agent/mcp_server.py"],
+      "note": "메시지 전송 도구라 로컬 모델에는 열지 않는다"
+    },
+    "local-qwen": {
+      "tools": ["claude", "codex"],
+      "command": "python3",
+      "args": ["~/projects/claude-cooperation/local_qwen.py"],
+      "note": "긴 문서 분석을 로컬에 맡기는 MCP, 로컬 실행자 자신에게는 필요 없다"
+    }
+  },
+  "plugins": {
+    "ponytail": {
+      "claude": "ponytail@ponytail",
+      "codex": "ponytail@ponytail",
+      "codex_marketplace": "~/.claude/plugins/marketplaces/ponytail"
+    },
+    "claude-md-management": {"claude": "claude-md-management@claude-plugins-official"}
+  }
+}
