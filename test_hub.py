@@ -68,6 +68,41 @@ class RunTest(unittest.TestCase):
         self.assertEqual(hub.classify('이 로그 요약해줘'), 'summarize')
         self.assertEqual(hub.classify('결제 모듈 리팩터링'), 'design')
 
+    def test_open_skips_exhausted_tools(self):
+        quota = {'claude': {'ok': False}, 'codex': {'ok': True}, 'local': {'ok': True}}
+        with mock.patch.object(hub, 'status', lambda fresh=False, names=(): {n: quota[n] for n in names}), \
+                mock.patch.object(hub.os, 'execvpe') as execvpe:
+            hub.open_tui('첫 요청')
+        self.assertEqual(execvpe.call_args[0][1], ['codex', '첫 요청'])
+        self.assertNotIn('HUB_DEPTH', execvpe.call_args[0][2])
+
+    def test_review_goes_to_the_other_model(self):
+        seen = []
+        quota = {'codex': {'ok': False}, 'claude': {'ok': True}, 'local': {'ok': True}}
+        with mock.patch.object(hub, 'is_git', lambda cwd: True), mock.patch.dict(os.environ, {'CLAUDECODE': '1'}), \
+                mock.patch.object(hub, 'status', lambda: quota), \
+                mock.patch.dict(hub.EXECUTORS, {'claude': lambda task, *a: seen.append(task) or result()}):
+            report = hub.review(cwd=self.tmp.name)
+        self.assertEqual(report['tried'][0], {'who': 'codex', 'skipped': 'quota'})
+        self.assertEqual(report['who'], 'claude')
+        self.assertIn('파일은 고치지 않는다', seen[-1])
+
+    def test_review_needs_paths_for_large_dirty_trees(self):
+        dirty = {f' M f{i}.py' for i in range(hub.REVIEW_LIMIT + 1)}
+        with mock.patch.object(hub, 'is_git', lambda cwd: True), mock.patch.object(hub, 'git_status', lambda cwd: dirty):
+            with self.assertRaises(SystemExit):
+                hub.review(cwd=self.tmp.name)
+            with mock.patch.object(hub, 'run', lambda task, *a, **k: task):
+                self.assertIn("git diff HEAD -- a.py 'b c.py'", hub.review(['a.py', 'b c.py'], cwd=self.tmp.name))
+
+    def test_open_print_quotes_for_eval(self):
+        quota = {'claude': {'ok': True}}
+        with mock.patch.object(hub, 'status', lambda fresh=False, names=(): {n: quota[n] for n in names}), \
+                mock.patch('builtins.print') as out, mock.patch.object(hub.os, 'execvpe') as execvpe:
+            hub.open_tui("it's", print_only=True)
+        self.assertEqual(out.call_args_list[-1][0][0], "claude 'it'\"'\"'s'")
+        execvpe.assert_not_called()
+
 
 class SyncTest(unittest.TestCase):
     def setUp(self):

@@ -13,6 +13,9 @@ Claude Code, Codex CLI, 로컬 모델(Hermes Agent + OpenAI 호환 로컬 서버
 hub status                         # 세 실행자의 한도와 검토 대기 목록
 hub run --kind fix "작업 설명"       # 위임. --kind 를 빼면 키워드와 로컬 모델이 고른다
 hub run --to local "작업 설명"       # 실행자 고정(대체 없음)
+hub review 파일...                  # 커밋 전 변경을 다른 모델이 검토(Claude Code 안이면 Codex, 아니면 Claude)
+hub open ["첫 요청"]                 # 대화형 도구를 한도 순서(claude → codex → hermes)로 띄운다
+eval "$(hub open --print)"         # 고른 명령을 셸이 실행한다(셸 함수·별칭을 살릴 때)
 hub sync                           # 스킬·MCP·플러그인 변경 계획
 hub sync --apply                   # 반영(설정 파일을 먼저 백업)
 ```
@@ -25,6 +28,11 @@ hub sync --apply                   # 반영(설정 파일을 먼저 백업)
 
 `hub run`은 JSON을 출력한다. `who`는 실제로 맡은 실행자, `tried`는 건너뛰거나 실패한 기록, `changed`는 이번 실행에서
 새로 바뀐 git 파일이다. 로컬이 클라우드 대신 처리했다면 `needs_review: true`가 붙는다. 로컬 결과는 초안으로 보고 다시 검증한다.
+
+`hub review`는 만든 쪽이 아닌 모델에게 커밋하지 않은 변경(`git diff HEAD`와 새 파일)을 한 번 검토시킨다.
+파일을 고치지 말고 버그·회귀·보안·빠진 검사만 `파일:줄 — 문제 — 이유`로 적게 한다. 검토자 한도가 없으면 다른 클라우드,
+그다음 로컬 순서다. 파일을 지정하지 않았는데 변경이 30개를 넘으면 거절한다.
+`hub open`은 한도가 남은 첫 도구로 프로세스를 바꾼다. `--print`는 실행하지 않고 셸 명령만 출력한다.
 
 ## 한도 판정
 

@@ -3,6 +3,8 @@
 
   hub status                         세 실행자의 쿼터와 상태
   hub run [--kind K] [--to T] "작업"  잘하는 쪽에 맡기고, 한도가 막히면 다음 순서로 넘긴다
+  hub open [--print] ["첫 프롬프트"]    한도가 남은 대화형 도구(claude → codex → hermes)를 띄운다
+  hub review [파일...]                커밋 전 변경을 다른 모델이 한 번 검토한다(Claude 작업은 Codex가)
   hub sync [--apply]                 manifest.json 의 스킬·MCP·플러그인과 공통 지침을 세 도구에 맞춘다
 
 표준 라이브러리만 쓴다. 실행 기록과 상태는 ~/vault/agent-hub 에 둔다.
@@ -12,6 +14,7 @@ import json
 import os
 import re
 import select
+import shlex
 import shutil
 import subprocess
 import sys
@@ -121,7 +124,12 @@ def codex_quota(use_credits):
                     raise ConnectionError('codex app-server closed')
                 reply = json.loads(line)
     finally:
-        process.kill()
+        # 강제 종료하면 node 래퍼만 죽고 네이티브 app-server 가 남는다. 입력을 닫으면 둘 다 스스로 끝난다.
+        process.stdin.close()
+        try:
+            process.wait(5)
+        except subprocess.TimeoutExpired:
+            process.kill()
     result = reply.get('result') or {}
     limits = result.get('rateLimits') or {}
     credits = limits.get('credits') or {}
@@ -140,7 +148,7 @@ def local_quota():
     return {'ok': LOCAL_MODEL in names}
 
 
-def status(fresh=False):
+def status(fresh=False, names=('claude', 'codex', 'local')):
     """{'claude'|'codex'|'local': {'ok': True/False/None, ...}}. None 은 확인 실패(시도는 한다)."""
     cache = read_json(STATE / 'quota.json', {})
     blocked = read_json(STATE / 'blocked.json', {})
@@ -148,7 +156,8 @@ def status(fresh=False):
     use_credits = os.environ.get('HUB_CODEX_CREDITS') == '1' or manifest().get('codex_use_credits', False)
     checks = {'claude': claude_quota, 'codex': lambda: codex_quota(use_credits), 'local': local_quota}
     result = {}
-    for name, check in checks.items():
+    for name in names:
+        check = checks[name]
         entry = cache.get(name)
         if fresh or not entry or time.time() - entry.get('checked_at', 0) > QUOTA_TTL or entry.get('credits_mode') != use_credits:
             try:
@@ -156,7 +165,8 @@ def status(fresh=False):
             except Exception as exc:  # 조회가 막혀도 실행은 막지 않는다. 한도 오류는 실행 결과로 다시 잡힌다.
                 entry = {'ok': None, 'error': f'{type(exc).__name__}: {exc}'[:200]}
             entry.update(checked_at=time.time(), credits_mode=use_credits)
-            cache[name] = entry
+            if entry['ok'] is not None:  # 실패한 조회는 캐시하지 않고 다음에 다시 본다
+                cache[name] = entry
         entry = dict(entry)
         until = blocked.get(name, 0)
         if until > time.time():
@@ -204,10 +214,13 @@ def classify(task):
         return 'implement'
 
 
+def subscription_env():
+    """API 키가 있으면 구독 대신 API로 과금되므로 지운다."""
+    return {k: v for k, v in os.environ.items() if k not in ('ANTHROPIC_API_KEY', 'OPENAI_API_KEY')}
+
+
 def child_env():
-    env = {k: v for k, v in os.environ.items() if k not in ('ANTHROPIC_API_KEY', 'OPENAI_API_KEY')}
-    env['HUB_DEPTH'] = '1'  # 하위 실행자 안에서 hub run 을 다시 부르지 못하게 한다
-    return env
+    return subscription_env() | {'HUB_DEPTH': '1'}  # 하위 실행자 안에서 hub run 을 다시 부르지 못하게 한다
 
 
 def is_git(cwd):
@@ -281,12 +294,12 @@ def git_status(cwd):
     return {entry for entry in out.split('\0') if entry}
 
 
-def run(task, kind=None, to=None, cwd=None, timeout=1800):
+def run(task, kind=None, to=None, cwd=None, timeout=1800, order=None):
     if os.environ.get('HUB_DEPTH'):
         raise SystemExit('hub run 으로 실행된 작업 안에서는 다시 위임하지 않는다(HUB_DEPTH).')
     cwd = Path(cwd or os.getcwd()).resolve()
     kind = kind or classify(task)
-    order = (to,) if to else ORDER[kind]
+    order = order or ((to,) if to else ORDER[kind])
     quota = status()
     tried, result, who, started = [], None, None, time.time()
     before = git_status(cwd)
@@ -319,6 +332,50 @@ def run(task, kind=None, to=None, cwd=None, timeout=1800):
                                {'seconds': round(time.time() - started), 'usage': (result or {}).get('usage')},
                                ensure_ascii=False) + '\n')
     return report
+
+
+# 대화형 도구. 첫 프롬프트는 claude·codex 는 인자로, hermes 는 -q 로 받는다.
+TUI = {'claude': ['claude'], 'codex': ['codex'], 'local': ['hermes', 'chat']}
+TUI_PROMPT = {'claude': [], 'codex': [], 'local': ['-q']}
+REVIEW_LIMIT = 30  # 파일을 지정하지 않았을 때 검토할 변경 항목 상한. 오래 커밋하지 않은 저장소를 통째로 보내지 않는다
+REVIEW_TASK = (
+    '{cwd} 의 커밋하지 않은 변경을 검토하라. `git status --short -- {paths}` 와 `git diff HEAD -- {paths}` 로 변경을 보고, '
+    '새 파일과 변경을 이해하는 데 필요한 주변 코드는 직접 읽는다. 파일은 고치지 않는다. '
+    '버그·회귀·보안 문제·빠진 검사만 심각도 순으로 `파일:줄 — 문제 — 이유` 형식으로 짧게 적는다. '
+    '취향 문제는 적지 않는다. 문제가 없으면 "문제 없음" 한 줄만 쓴다.')
+
+
+def open_tui(prompt=None, to=None, print_only=False):
+    """한도가 남은 첫 도구로 이 프로세스를 바꾼다. 하위 실행이 아니라 사람이 쓰는 세션이라 HUB_DEPTH 는 넣지 않는다.
+    print_only 면 실행하지 않고 셸 명령만 출력한다. 셸 함수(예: ArcAI.ve 터미널의 claude)를 살리려면
+    `eval "$(hub open --print)"` 로 부른다."""
+    name, skipped = to, []
+    for candidate in () if to else ORDER['design']:
+        entry = status(names=(candidate,))[candidate]
+        if entry.get('ok') is not False:
+            name = candidate
+            break
+        skipped.append(candidate + (' 건너뜀' if entry.get('skipped') else ' 한도 소진'))
+    name = name or 'local'  # 모두 막혀도 로컬로 띄워 오류를 보이게 한다
+    print(f'hub: {name} 로 엽니다' + (f' ({", ".join(skipped)})' if skipped else ''), file=sys.stderr)
+    cmd = TUI[name] + (TUI_PROMPT[name] + [prompt] if prompt else [])
+    if print_only:
+        print(shlex.join(cmd))
+        return
+    os.execvpe(cmd[0], cmd, subscription_env())
+
+
+def review(paths=(), by=None, cwd=None, timeout=900):
+    """만든 쪽이 아닌 모델이 검토한다. Claude Code 안(CLAUDECODE)이면 Codex, 아니면 Claude 가 먼저다."""
+    cwd = Path(cwd or os.getcwd()).resolve()
+    if not is_git(cwd):
+        raise SystemExit(f'git 저장소가 아니라 변경을 알 수 없다: {cwd}')
+    dirty = len(git_status(cwd) or ())
+    if not paths and dirty > REVIEW_LIMIT:
+        raise SystemExit(f'커밋하지 않은 변경이 {dirty}개다. 이번 작업에서 바꾼 파일을 지정한다: hub review 파일...')
+    by = by or ('codex' if os.environ.get('CLAUDECODE') else 'claude')
+    order = (by, 'claude' if by == 'codex' else 'codex', 'local')
+    return run(REVIEW_TASK.format(cwd=cwd, paths=shlex.join(paths) or '.'), 'review', cwd=cwd, timeout=timeout, order=order)
 
 
 # ---------------------------------------------------------------- 동기화
@@ -495,6 +552,15 @@ def main(argv=None):
     p_run.add_argument('--to', choices=sorted(EXECUTORS), help='실행자 고정(대체 없음)')
     p_run.add_argument('--cwd')
     p_run.add_argument('--timeout', type=int, default=1800)
+    p_open = sub.add_parser('open', help='한도가 남은 대화형 도구 실행')
+    p_open.add_argument('prompt', nargs='?')
+    p_open.add_argument('--to', choices=sorted(TUI), help='도구 고정')
+    p_open.add_argument('--print', action='store_true', help='실행하지 않고 셸 명령만 출력(eval 용)')
+    p_review = sub.add_parser('review', help='커밋 전 변경을 다른 모델이 검토')
+    p_review.add_argument('paths', nargs='*', help='검토할 파일(이번 작업에서 바꾼 것)')
+    p_review.add_argument('--by', choices=sorted(EXECUTORS), help='검토할 쪽(기본: 만든 쪽이 아닌 모델)')
+    p_review.add_argument('--cwd')
+    p_review.add_argument('--timeout', type=int, default=900)
     p_sync = sub.add_parser('sync', help='스킬·MCP·플러그인·공통 지침 동기화')
     p_sync.add_argument('--apply', action='store_true', help='계획만 보이지 말고 실제로 반영')
     args = parser.parse_args(argv)
@@ -505,6 +571,10 @@ def main(argv=None):
         result['needs_review'] = pending[-10:]
     elif args.command == 'run':
         result = run(args.task, args.kind, args.to, args.cwd, args.timeout)
+    elif args.command == 'open':
+        return open_tui(args.prompt, args.to, args.print)
+    elif args.command == 'review':
+        result = review(args.paths, args.by, args.cwd, args.timeout)
     else:
         result = sync(args.apply)
     print(json.dumps(result, ensure_ascii=False, indent=1))
