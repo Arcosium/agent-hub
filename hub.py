@@ -35,11 +35,13 @@ QUOTA_TTL = 60
 
 # 잘하는 순서. 앞쪽이 한도에 막히면 다음으로 넘어간다. 클라우드는 각각 한 번씩만 있어서
 # 한 작업의 클라우드 호출은 두 번을 넘지 않는다(작업공간 규칙).
+# 리뷰·디버그는 로컬 먼저(사장 승인 2026-10-30): Flash-Next 가 6종 과제 12/12 만점, 리뷰·디버그는 2.5~4분.
+# 커밋 전 교차 검토(review())는 이 표가 아니라 '만든 쪽이 아닌 클라우드 모델' 순서를 쓴다.
 ORDER = {
     'design': ('claude', 'codex', 'local'),
-    'review': ('claude', 'codex', 'local'),
+    'review': ('local', 'claude', 'codex'),
     'docs': ('claude', 'codex', 'local'),
-    'debug': ('claude', 'codex', 'local'),
+    'debug': ('local', 'claude', 'codex'),
     'implement': ('codex', 'claude', 'local'),
     'test': ('codex', 'claude', 'local'),
     'fix': ('codex', 'claude', 'local'),

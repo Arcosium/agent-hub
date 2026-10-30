@@ -22,9 +22,13 @@ hub sync --apply                   # 반영(설정 파일을 먼저 백업)
 
 | kind | 맡는 순서 |
 |---|---|
-| design, review, docs, debug | claude → codex → local |
+| design, docs | claude → codex → local |
+| review, debug | local → claude → codex |
 | implement, test, fix | codex → claude → local |
 | summarize, explore | local → codex → claude |
+
+리뷰·디버그를 로컬 먼저로 옮긴 것은 2026-10-30 실측(Flash-Next 6종 과제 12/12 만점, 리뷰·디버그 2.5~4분, 같은 과제 Codex 27초·Claude 44초)과 사장 승인에 따른다.
+`hub review`(커밋 전 교차 검토)는 이 표를 쓰지 않고 만든 쪽이 아닌 클라우드 모델이 맡는다.
 
 `hub run`은 JSON을 출력한다. `who`는 실제로 맡은 실행자, `tried`는 건너뛰거나 실패한 기록, `changed`는 이번 실행에서
 새로 바뀐 git 파일이다. 로컬이 클라우드 대신 처리했다면 `needs_review: true`가 붙는다. 로컬 결과는 초안으로 보고 다시 검증한다.
