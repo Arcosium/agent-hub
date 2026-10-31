@@ -54,10 +54,10 @@ KEYWORDS = (  # 위에서부터 처음 맞는 것
     ('docs', r'문서|윤문|보고서|README|번역|맞춤법|\bdocs?\b'),
     ('debug', r'원인|디버그|debug|왜 .*(안 ?되|실패|죽)'),
     ('test', r'테스트|\btests?\b'),
-    ('fix', r'고쳐|버그|\bfix\b|\bbug\b'),
+    ('fix', r'고쳐|고치|수정|버그|\bfix\b|\bbug\b'),
     ('summarize', r'요약|summar'),
     ('explore', r'찾아|어디(에|서)|목록|explore|\bfind\b|search'),
-    ('implement', r'구현|만들|추가|작성|implement|\badd\b|create|write'),
+    ('implement', r'구현|만들|추가|작성|적용|반영|업데이트|바꿔|바꾸|implement|\badd\b|create|write'),  # 적용~바꾸: 10/31 자동 모드가 '적용해줘'·'업데이트하자'를 못 잡아 Claude 에 머물렀다
 )
 LIMIT_RE = re.compile(r'usage limit|rate[ _-]?limit|limit reached|hit your .*limit|quota|\b429\b|한도', re.I)
 SKILL_DIRS = {
