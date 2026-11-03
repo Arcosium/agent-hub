@@ -368,15 +368,18 @@ def open_tui(prompt=None, to=None, print_only=False):
 
 
 def review(paths=(), by=None, cwd=None, timeout=900):
-    """만든 쪽이 아닌 모델이 검토한다. Claude Code 안(CLAUDECODE)이면 Codex, 아니면 Claude 가 먼저다."""
+    """만든 쪽이 아닌 모델이 검토한다(사장 지시 2026-11-03): Claude 작업은 Codex, Codex 작업은 Claude. 검토할 쪽 한도가
+    차면 만든 쪽이 아니라 로컬이 본다 — 자기 작업을 자기가 검토하지 않는다. 만든 쪽은 Claude Code 안(CLAUDECODE)이면 Claude,
+    ArcAI.ve 엔진이면 ARCAIVE_ENGINE, 그 밖은 Codex 로 본다."""
     cwd = Path(cwd or os.getcwd()).resolve()
     if not is_git(cwd):
         raise SystemExit(f'git 저장소가 아니라 변경을 알 수 없다: {cwd}')
     dirty = len(git_status(cwd) or ())
     if not paths and dirty > REVIEW_LIMIT:
         raise SystemExit(f'커밋하지 않은 변경이 {dirty}개다. 이번 작업에서 바꾼 파일을 지정한다: hub review 파일...')
-    by = by or ('codex' if os.environ.get('CLAUDECODE') else 'claude')
-    order = (by, 'claude' if by == 'codex' else 'codex', 'local')
+    me = 'claude' if os.environ.get('CLAUDECODE') else os.environ.get('ARCAIVE_ENGINE') or 'codex'
+    by = by or ('codex' if me == 'claude' else 'claude')
+    order = (by, 'local') if me != 'local' else (by, 'codex' if by == 'claude' else 'claude')   # 로컬 작업은 두 클라우드 중 하나
     return run(REVIEW_TASK.format(cwd=cwd, paths=shlex.join(paths) or '.'), 'review', cwd=cwd, timeout=timeout, order=order)
 
 

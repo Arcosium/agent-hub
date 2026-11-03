@@ -81,11 +81,23 @@ class RunTest(unittest.TestCase):
         quota = {'codex': {'ok': False}, 'claude': {'ok': True}, 'local': {'ok': True}}
         with mock.patch.object(hub, 'is_git', lambda cwd: True), mock.patch.dict(os.environ, {'CLAUDECODE': '1'}), \
                 mock.patch.object(hub, 'status', lambda: quota), \
-                mock.patch.dict(hub.EXECUTORS, {'claude': lambda task, *a: seen.append(task) or result()}):
+                mock.patch.dict(hub.EXECUTORS, {'local': lambda task, *a: seen.append(task) or result(),
+                                                'claude': lambda task, *a: self.fail('자기 작업을 자기가 검토했다')}):
             report = hub.review(cwd=self.tmp.name)
+        # 사장 지시 2026-11-03: Claude 작업인데 Codex 한도가 차면 Claude 자신이 아니라 로컬이 검토한다
         self.assertEqual(report['tried'][0], {'who': 'codex', 'skipped': 'quota'})
-        self.assertEqual(report['who'], 'claude')
+        self.assertEqual(report['who'], 'local')
         self.assertIn('파일은 고치지 않는다', seen[-1])
+
+    def test_codex_work_is_reviewed_by_claude_then_local_never_codex(self):
+        env = {k: v for k, v in os.environ.items() if k not in ('CLAUDECODE', 'ARCAIVE_ENGINE')}
+        for quota, who in (({'claude': {'ok': True}}, 'claude'), ({'claude': {'ok': False}}, 'local')):
+            quota = {'codex': {'ok': True}, 'local': {'ok': True}, **quota}
+            with mock.patch.object(hub, 'is_git', lambda cwd: True), mock.patch.dict(os.environ, env, clear=True), \
+                    mock.patch.object(hub, 'status', lambda: quota), \
+                    mock.patch.dict(hub.EXECUTORS, {'claude': lambda *a: result(), 'local': lambda *a: result(),
+                                                    'codex': lambda *a: self.fail('자기 작업을 자기가 검토했다')}):
+                self.assertEqual(hub.review(cwd=self.tmp.name)['who'], who)
 
     def test_review_needs_paths_for_large_dirty_trees(self):
         dirty = {f' M f{i}.py' for i in range(hub.REVIEW_LIMIT + 1)}

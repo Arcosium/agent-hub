@@ -41,7 +41,9 @@ hub sync                                    # 스킬·MCP·플러그인 변경 �
 ## 교차 검토(`hub review`)
 
 - 여러 파일에 걸친 구현·수정, 버그 수정, 보안·데이터 경로 변경을 마쳤으면 완료 보고 전에 한 번 실행한다.
-  Claude 세션(`CLAUDECODE`)이면 Codex가, 그 밖이면 Claude가 검토한다. 검토자 한도가 없으면 다른 클라우드, 그다음 로컬이다.
+  Claude 작업은 Codex가, Codex 작업은 Claude가 검토한다. 검토할 쪽 한도가 차면 로컬이 검토한다(자기 작업을 자기가 검토하지 않는다,
+  2026-11-03). 한쪽 한도가 차서 다른 클라우드가 메인 작업을 맡았을 때도 같다: Claude가 차면 Codex가 만들고 로컬이 검토,
+  Codex가 차면 Claude가 만들고 로컬이 검토. 만든 쪽은 `CLAUDECODE`면 Claude, ArcAI.ve 엔진이면 `ARCAIVE_ENGINE`, 그 밖은 Codex.
 - 검토는 커밋하지 않은 git 변경(`git diff HEAD`, 새 파일)을 본다. 커밋하기 전에, 이번 작업에서 바꾼 파일을 인자로 넘겨 부른다.
   오래 커밋하지 않은 저장소가 많아서 파일 없이 부르면 변경이 30개를 넘을 때 거절한다.
 - 보통 20~60초 걸린다. Claude Code는 Bash `timeout`을 600000으로 주고, Codex는 JSON 결과가 나올 때까지 기다린다.
