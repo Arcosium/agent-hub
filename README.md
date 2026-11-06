@@ -5,6 +5,8 @@ Claude Code, Codex CLI, 로컬 모델(Hermes Agent + OpenAI 호환 로컬 서버
 
 - 잘하는 쪽에 먼저 맡긴다. 설계·검토·문서는 Claude, 구현·테스트·수정은 Codex, 요약·탐색은 로컬이다.
 - 구독 한도가 떨어지면 넘긴다. Codex가 막히면 Claude가, Claude가 막히면 Codex가, 둘 다 막히면 로컬이 맡는다.
+  구현·테스트·수정(`implement`·`test`·`fix`)은 로컬로 넘기지 않고 둘 다 막히면 실행하지 않는다(2026-11-06).
+  로컬 실행기(`hermes -z`)에는 어떤 종류든 파일을 고치지 말고 초안만 답하라는 지시가 붙는다.
 - 스킬·MCP·플러그인을 `manifest.json` 하나로 관리하고 세 도구에 똑같이 맞춘다.
 
 ## 명령

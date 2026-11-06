@@ -37,14 +37,15 @@ QUOTA_TTL = 60
 # 한 작업의 클라우드 호출은 두 번을 넘지 않는다(작업공간 규칙).
 # 리뷰·디버그는 로컬 먼저(사장 승인 2026-10-30): Flash-Next 가 6종 과제 12/12 만점, 리뷰·디버그는 2.5~4분.
 # 커밋 전 교차 검토(review())는 이 표가 아니라 '만든 쪽이 아닌 클라우드 모델' 순서를 쓴다.
+# 구현·테스트·수정은 로컬로 넘기지 않는다(사장 지시 2026-11-06) — 두 클라우드가 다 한도면 실행하지 않고 보고한다.
 ORDER = {
     'design': ('claude', 'codex', 'local'),
     'review': ('local', 'claude', 'codex'),
     'docs': ('claude', 'codex', 'local'),
     'debug': ('local', 'claude', 'codex'),
-    'implement': ('codex', 'claude', 'local'),
-    'test': ('codex', 'claude', 'local'),
-    'fix': ('codex', 'claude', 'local'),
+    'implement': ('codex', 'claude'),
+    'test': ('codex', 'claude'),
+    'fix': ('codex', 'claude'),
     'summarize': ('local', 'codex', 'claude'),
     'explore': ('local', 'codex', 'claude'),
 }
@@ -268,8 +269,12 @@ def run_codex(task, kind, cwd, timeout):
             'answer': answer or detail.strip()[-2000:], 'usage': usage, 'raw': out[-20000:] or err[-5000:]}
 
 
+# 로컬은 무슨 종류로 오든(docs·design·debug·--to local) 파일을 고치지 않는다(사장 지시 2026-11-06)
+LOCAL_READONLY = '[로컬 — 파일 수정·커밋·push·배포·설정 변경은 하지 않는다. 읽고 분석해 고칠 내용은 답에 초안으로 적는다]\n'
+
+
 def run_local(task, kind, cwd, timeout):
-    code, out, err = call(['hermes', '-z', task], cwd, timeout)
+    code, out, err = call(['hermes', '-z', LOCAL_READONLY + task], cwd, timeout)
     answer = out.strip()
     failed = code != 0 or not answer or answer.startswith('Error:')
     return {'ok': not failed, 'limited': False, 'answer': answer or err.strip()[-2000:], 'usage': None,

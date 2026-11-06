@@ -45,6 +45,16 @@ class RunTest(unittest.TestCase):
                     {'local': lambda *a: result()}, kind='design')
         self.assertEqual((r['who'], r['ok'], r['needs_review']), ('local', True, True))
 
+    def test_both_clouds_out_never_hands_fixes_to_local(self):
+        r = self.go({'codex': {'ok': False}, 'claude': {'ok': False}, 'local': {'ok': True}},
+                    {'local': lambda *a: self.fail('로컬이 수정 작업을 맡았다')}, kind='fix')
+        self.assertEqual((r['who'], r['ok']), (None, False))
+
+    def test_local_executor_is_told_not_to_edit(self):
+        with mock.patch.object(hub, 'call', return_value=(0, '답', '')) as call:
+            hub.run_local('README 고쳐', 'docs', self.tmp.name, 10)
+        self.assertEqual(call.call_args[0][0][-1], hub.LOCAL_READONLY + 'README 고쳐')
+
     def test_local_failure_escalates_for_summaries(self):
         r = self.go({'codex': {'ok': True}, 'claude': {'ok': True}, 'local': {'ok': True}},
                     {'local': lambda *a: result(False), 'codex': lambda *a: result()}, kind='summarize')
