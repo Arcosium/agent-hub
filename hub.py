@@ -106,7 +106,8 @@ def claude_quota():
     limits = [x for x in data.get('limits', []) if x.get('kind') in ('session', 'weekly_all')]
     full = [x for x in limits if (x.get('percent') or 0) >= 100]
     return {'ok': not full, 'used': {x['kind']: x.get('percent') for x in limits},
-            'resets_at': min(x['resets_at'] for x in full) if full else None}
+            'resets_at': max(x['resets_at'] for x in full) if full else None,   # 둘 다 소진이면 늦게 풀리는 쪽까지 막힘(11/09 교차 검토)
+            'week_resets_at': next((x.get('resets_at') for x in limits if x['kind'] == 'weekly_all'), None)}   # 표시용(11/09)
 
 
 def codex_quota(use_credits):
@@ -141,6 +142,7 @@ def codex_quota(use_credits):
     return {'ok': bool(ordinary or (use_credits and credits.get('hasCredits'))),
             'used': {k: v.get('usedPercent') for k, v in windows.items()},
             'resets_at': None if ordinary else iso(max((v.get('resetsAt') or 0) for v in windows.values()) if windows else 0),
+            'week_resets_at': iso(next((v.get('resetsAt') for v in windows.values() if v.get('windowDurationMins') == 10080), 0)),
             'credits': credits.get('balance') if credits.get('hasCredits') else None,
             'using_credits': bool(not ordinary and use_credits and credits.get('hasCredits'))}
 

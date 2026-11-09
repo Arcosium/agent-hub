@@ -1,3 +1,5 @@
+import io
+import json
 import os
 import tempfile
 import unittest
@@ -12,6 +14,14 @@ def result(ok=True, limited=False, answer='done'):
 
 
 class RunTest(unittest.TestCase):
+    def test_claude_reset_is_the_later_of_full_windows(self):
+        # 5시간·주간이 모두 소진이면 주간이 풀릴 때까지 막힌다(11/09 교차 검토)
+        data = {'limits': [{'kind': 'session', 'percent': 100, 'resets_at': '2026-11-09T05:00:00+00:00'},
+                           {'kind': 'weekly_all', 'percent': 100, 'resets_at': '2026-11-14T00:00:00+00:00'}]}
+        with mock.patch.object(hub, 'read_json', lambda *a: {'claudeAiOauth': {'accessToken': 't'}}), \
+                mock.patch.object(hub.urllib.request, 'urlopen', lambda *a, **k: io.BytesIO(json.dumps(data).encode())):
+            self.assertEqual(hub.claude_quota()['resets_at'], '2026-11-14T00:00:00+00:00')
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         patches = [mock.patch.object(hub, 'STATE', Path(self.tmp.name)),
