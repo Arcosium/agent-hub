@@ -20,7 +20,7 @@
       "claude": "~/.claude/skills/humanize-korean",
       "codex": "~/.codex/skills/humanize-korean",
       "hermes": "~/.codex/skills/humanize-korean",
-      "note": "Claude 판은 정밀(5인) 모드 포함, Codex 판은 한 번에 끝내는 Fast 모드라 로컬도 Codex 판을 쓴다"
+      "note": "2026-11-10 사장 지시로 im-not-ai 최신본으로 교체. 두 경로 모두 ~/.claude/plugins/marketplaces/im-not-ai 의 skills/·codex/skills/ 심링크라 그 저장소 git pull 로 갱신, 로컬도 Codex 판을 쓴다"
     },
     "공모전": {
       "claude": "~/.claude/skills/공모전",
@@ -49,6 +49,10 @@
     },
     "humanize-redo": {
       "claude": "~/.claude/skills/humanize-redo",
+      "note": "im-not-ai 플러그인 마켓 스킬"
+    },
+    "humanize-scan": {
+      "claude": "~/.claude/skills/humanize-scan",
       "note": "im-not-ai 플러그인 마켓 스킬"
     },
     "docx": {
