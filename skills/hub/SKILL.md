@@ -29,6 +29,8 @@ hub sync                                    # 스킬·MCP·플러그인 변경 �
 | implement, test, fix | codex → claude → local |
 | summarize, explore | local → codex → claude |
 
+역할 요약(2026-11-11 사장 지시): 정확·꼼꼼해야 하는 설계·구현·검토는 Claude, 창의적인 일(이름·카피·공모전 주제 후보 설계, 최종 제안은 Codex Astra)과 범위가 정해진 구현은 Codex, 한글 윤문과 간단한 지식 질문은 Gemini(ArcAI.ve `arcai-routine handoff gemini`, `hub run` 종류 아님).
+
 `--kind`를 빼면 키워드와 로컬 모델이 고른다. `--to claude|codex|local`은 대체 없이 그쪽만 쓴다.
 
 ## 언제 쓰나
