@@ -22,6 +22,19 @@ class RunTest(unittest.TestCase):
                 mock.patch.object(hub.urllib.request, 'urlopen', lambda *a, **k: io.BytesIO(json.dumps(data).encode())):
             self.assertEqual(hub.claude_quota()['resets_at'], '2026-11-14T00:00:00+00:00')
 
+    def test_claude_model_weekly_limit_is_shown_but_does_not_block(self):
+        # Fable 주간 한도가 차도 다른 Claude 모델은 돈다 — used 에만 싣고 ok 는 그대로(11/18)
+        data = {'limits': [{'kind': 'weekly_all', 'percent': 64, 'resets_at': '2026-11-18T22:00:00+00:00', 'scope': None},
+                           {'kind': 'weekly_scoped', 'percent': 100, 'resets_at': '2026-11-18T22:00:00+00:00',
+                            'scope': {'model': {'id': None, 'display_name': 'Fable'}, 'surface': None}},
+                           {'kind': 'weekly_scoped', 'percent': 5, 'scope': {'model': None, 'surface': 'x'}}]}
+        with mock.patch.object(hub, 'read_json', lambda *a: {'claudeAiOauth': {'accessToken': 't'}}), \
+                mock.patch.object(hub.urllib.request, 'urlopen', lambda *a, **k: io.BytesIO(json.dumps(data).encode())):
+            quota = hub.claude_quota()
+        self.assertEqual(quota['used'], {'weekly_fable': 100, 'weekly_all': 64})
+        self.assertTrue(quota['ok'])
+        self.assertIsNone(quota['resets_at'])
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         patches = [mock.patch.object(hub, 'STATE', Path(self.tmp.name)),

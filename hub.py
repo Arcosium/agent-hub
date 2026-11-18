@@ -105,7 +105,10 @@ def claude_quota():
         data = json.load(response)
     limits = [x for x in data.get('limits', []) if x.get('kind') in ('session', 'weekly_all')]
     full = [x for x in limits if (x.get('percent') or 0) >= 100]
-    return {'ok': not full, 'used': {x['kind']: x.get('percent') for x in limits},
+    # 모델별 주간 한도(Fable 등)는 표시용 — 그 모델만 막히므로 ok 에는 넣지 않는다(11/18)
+    scoped = {'weekly_' + x['scope']['model']['display_name'].lower(): x.get('percent') for x in data.get('limits', [])
+              if x.get('kind') == 'weekly_scoped' and ((x.get('scope') or {}).get('model') or {}).get('display_name')}
+    return {'ok': not full, 'used': {**scoped, **{x['kind']: x.get('percent') for x in limits}},
             'resets_at': max(x['resets_at'] for x in full) if full else None,   # 둘 다 소진이면 늦게 풀리는 쪽까지 막힘(11/09 교차 검토)
             'week_resets_at': next((x.get('resets_at') for x in limits if x['kind'] == 'weekly_all'), None)}   # 표시용(11/09)
 

@@ -122,6 +122,10 @@
     "hyperframes-registry": {
       "all": "~/.local/share/agent-skills/hyperframes/skills/hyperframes-registry",
       "note": "heygen-com/hyperframes(Apache-2.0) skills/ 사본. 텔레메트리는 ~/.hyperframes/config.json 에서 끔(2026-11-05)"
+    },
+    "paper-format": {
+      "all": "~/.claude/skills/paper-format",
+      "note": "2026-11-18 사장 지시: 논문 기본 양식(학술자료집 HWPX 규격) DOCX·PDF 생성기. fonts/ 휴먼명조는 비공개 로컬 파일"
     }
   },
   "mcp": {
