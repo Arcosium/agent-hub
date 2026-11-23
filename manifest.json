@@ -8,7 +8,8 @@
       "all": "~/.codex/skills/arka-design"
     },
     "hwp": {
-      "all": "~/.claude/skills/hwp"
+      "all": "~/projects/agent-hub/skills/hwp",
+      "note": "2026-11-23 사장 지시로 자체 엔진 hwpeng(~/projects/hwp-engine) 중심 재구성. hwp-cli 1.3.1 이 내보낸 원래 스킬은 참고서로 ~/.local/share/agent-skills/hwp-cli. hwp skill export --install 은 이 스킬을 덮으므로 쓰지 않고 -o 로 받는다"
     },
     "playwright-cli": {
       "all": "~/.claude/skills/playwright-cli"
