@@ -190,6 +190,17 @@
         "~/projects/claude-cooperation/local_qwen.py"
       ],
       "note": "긴 문서 분석을 로컬에 맡기는 MCP, 로컬 실행자 자신에게는 필요 없다"
+    },
+    "trading-contest": {
+      "tools": [
+        "claude",
+        "codex"
+      ],
+      "command": "/usr/bin/python3",
+      "args": [
+        "~/projects/ETN_AI실전투자대회/_workspace/mcp/contest_bridge.py"
+      ],
+      "note": "ETN AI 실전투자대회 예선 모의투자 MCP(2026-12-03~12-09). 연결 코드는 vault 에서 읽는 중계라 이 공개 파일엔 주소가 없다. 실제 도구 호출 때만 대회 서버에 붙는다. 12/10 이후 뺀다"
     }
   },
   "plugins": {
